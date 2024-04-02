@@ -6,7 +6,14 @@ public class UtilTest {
     @Test
     public void testEncodeThenDecode()
     {
-        String inputJsonString_basic = "{\n" +
+        String jsonString_basic = "{\n" +
+                "    \"root_type\": \"Soldier\", \n" +
+                "    \"name\": \"Mike\",\n" +
+                "    \"hp\": 100,\n" +
+                "    \"mana\": 20\n" +
+                "}";
+
+        String jsonString_basic_array = "{\n" +
                 "    \"root_type\": \"Soldier\",\n" +
                 "    \"name\": \"Mike\",\n" +
                 "    \"hp\": 100,\n" +
@@ -15,8 +22,22 @@ public class UtilTest {
                 "    }\n" +
                 "}";
 
+        String jsonString_external_class = "{\n" +
+                "    \"root_type\": \"Soldier\",\n" +
+                "    \"name\": \"Mike\",\n" +
+                "    \"hp\": 100,\n" +
+                "    \"mana\": 20,\n" +
+                "    \"weapon\": {\n" +
+                "        \"name\": \"Axe\",\n" +
+                "        \"damage\": 50\n" +
+                "    }\n" +
+                "}";
 
-        String encodedString = Util.encode(inputJsonString_basic);
+//        String encodedString = Util.encode(jsonString_basic);
+//        String encodedString = Util.encode(jsonString_basic_array);
+        String encodedString = Util.encode(jsonString_external_class);
+        System.out.println("=================================");
+        System.out.println("Encoded string is like following: ");
         System.out.println(encodedString);
 
         // Decode the encoded string back into a JSON string.

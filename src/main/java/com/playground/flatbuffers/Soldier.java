@@ -30,21 +30,19 @@ public final class Soldier extends Table {
   public String name() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer nameAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }
   public ByteBuffer nameInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 4, 1); }
-  public String weapons(int j) { int o = __offset(6); return o != 0 ? __string(__vector(o) + j * 4) : null; }
-  public int weaponsLength() { int o = __offset(6); return o != 0 ? __vector_len(o) : 0; }
-  public StringVector weaponsVector() { return weaponsVector(new StringVector()); }
-  public StringVector weaponsVector(StringVector obj) { int o = __offset(6); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
-  public int mana() { int o = __offset(8); return o != 0 ? bb.getInt(o + bb_pos) : 0; }
-  public short hp() { int o = __offset(10); return o != 0 ? bb.getShort(o + bb_pos) : 0; }
+  public int mana() { int o = __offset(6); return o != 0 ? bb.getInt(o + bb_pos) : 0; }
+  public short hp() { int o = __offset(8); return o != 0 ? bb.getShort(o + bb_pos) : 0; }
+  public Weapon weapon() { return weapon(new Weapon()); }
+  public Weapon weapon(Weapon obj) { int o = __offset(10); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
 
   public static int createSoldier(FlatBufferBuilder builder,
       int nameOffset,
-      int weaponsOffset,
       int mana,
-      short hp) {
+      short hp,
+      int weaponOffset) {
     builder.startTable(4);
+    Soldier.addWeapon(builder, weaponOffset);
     Soldier.addMana(builder, mana);
-    Soldier.addWeapons(builder, weaponsOffset);
     Soldier.addName(builder, nameOffset);
     Soldier.addHp(builder, hp);
     return Soldier.endSoldier(builder);
@@ -52,11 +50,9 @@ public final class Soldier extends Table {
 
   public static void startSoldier(FlatBufferBuilder builder) { builder.startTable(4); }
   public static void addName(FlatBufferBuilder builder, int nameOffset) { builder.addOffset(0, nameOffset, 0); }
-  public static void addWeapons(FlatBufferBuilder builder, int weaponsOffset) { builder.addOffset(1, weaponsOffset, 0); }
-  public static int createWeaponsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
-  public static void startWeaponsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addMana(FlatBufferBuilder builder, int mana) { builder.addInt(2, mana, 0); }
-  public static void addHp(FlatBufferBuilder builder, short hp) { builder.addShort(3, hp, 0); }
+  public static void addMana(FlatBufferBuilder builder, int mana) { builder.addInt(1, mana, 0); }
+  public static void addHp(FlatBufferBuilder builder, short hp) { builder.addShort(2, hp, 0); }
+  public static void addWeapon(FlatBufferBuilder builder, int weaponOffset) { builder.addOffset(3, weaponOffset, 0); }
   public static int endSoldier(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;
