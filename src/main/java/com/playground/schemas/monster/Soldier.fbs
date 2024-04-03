@@ -1,12 +1,10 @@
 // Example IDL file for our soldier's schema.
 namespace com.playground.flatbuffers;
-union Equipment { Weapon } // Optionally add more tables.
 table Soldier {
-  mana:short = 10;
-  hp:short = 50;
   name:string;
-  weapons:[Weapon];   // Vector of tables.
-  equipped:Equipment; // Union.
+  mana:int;
+  hp:short;
+  weapons:[Weapon];   
 }
 table Weapon {
   name:string;
