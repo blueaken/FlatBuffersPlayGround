@@ -3,7 +3,6 @@ package com.playground.util;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.playground.flatbuffers.*;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -123,11 +122,49 @@ public class Util {
                             Object length = getLengthMethod.invoke(instance);
                             System.out.println("This " + rootType + " has "+ length + " " + key + ":");
                             Method getMethod = clazz.getMethod(key, int.class);
-                            // Class<?> returnType = method.getReturnType();
+                            Class<?> returnType = getMethod.getReturnType();
+                            key = key.substring(0, key.length()-1); // remove last char "s" for array key
                             for (int i = 0; i < (Integer)length; i++) {
                                 Object value = getMethod.invoke(instance, i);
+                                switch (returnType.getName()) {
+                                    case "short":
+                                    case "String":
+                                    case "int":
+                                        System.out.println(key + " " + (i+1) +  " is " + value);
+                                        break;
+                                    default:
+                                        //object
+                                        Class<?> objectClazz = Class.forName(returnType.getName());
+                                        Object objectInstance = objectClazz.cast(value);
 
-                                System.out.println(key + " " + (i+1) +  " is " + value);
+                                        Method[] objectMethods = objectClazz.getDeclaredMethods();
+                                        Set<String> objectFields = objectFieldsMap.get(key);
+                                        for (String objectField : objectFields) {
+                                            for (Method objectMethod : objectMethods) {
+                                                if (objectMethod.getName().equals(objectField)) {
+                                                    Method objectGetMethod = objectClazz.getMethod(objectField);
+                                                    Object objectValue = objectGetMethod.invoke(objectInstance);
+                                                    Class<?> objectReturnType = objectGetMethod.getReturnType();
+
+                                                    switch (objectReturnType.getName()) {
+                                                        case "short":
+                                                            System.out.println(key + " " + (i+1) + "'s "+ objectField +" is: " + (Short) objectValue);
+                                                            break;
+                                                        case "java.lang.String":
+                                                            System.out.println(key + " " + (i+1) + "'s "+ objectField +" is: "+ (String) objectValue);
+                                                            break;
+                                                        case "int":
+                                                            System.out.println(key + " " + (i+1) + "'s "+ objectField +" is: " + (Integer) objectValue);
+                                                            break;
+                                                        default:
+                                                            System.out.println("Not supported data type in Object Decode block!");
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                }
+
                             }
 
                         }
@@ -135,9 +172,6 @@ public class Util {
                 }
             }
 
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            System.out.println("方法抛出异常: " + cause.getMessage());
         } catch (Exception e) {
             System.out.println("Exception in decode reflection block.");
             e.printStackTrace();
@@ -244,7 +278,7 @@ public class Util {
                             Class<?> returnType = method.getReturnType();
                             Class<?> objectClazz = Class.forName(returnType.getName());
                             Object objectInstance = objectClazz.getDeclaredConstructor().newInstance();
-                            buildObjectValues(key, (JSONObject) value, objectClazz, objectInstance, builder);
+                            buildObjectValues(key, (JSONObject) value, objectClazz, objectInstance, builder, false);
                         } catch (Exception e) {
                             System.out.println("Exception in buildOffsetValues JSONObject reflection block.");
                             e.printStackTrace();
@@ -293,16 +327,21 @@ public class Util {
         }
     }
 
-    private static void buildObjectValues(String key, JSONObject jsonObject, Class<?> clazz, Object instance, FlatBufferBuilder builder) {
+    private static int buildObjectValues(String key, JSONObject jsonObject, Class<?> clazz, Object instance, FlatBufferBuilder builder, boolean isArray) {
         Set<String> objectFields = new HashSet<>();
         Map<Integer, Input> objectValueOffsetMap = new HashMap<>();
+        int res = Integer.MIN_VALUE;
+        if (isArray) {
+            // for array remove the last 's' char
+            key = key.substring(0, key.length()-1);
+        }
         try {
             for (String objectKey : jsonObject.keySet()) {
                 objectFields.add(objectKey);
                 Object value = jsonObject.get(objectKey);
 
                 if (value instanceof JSONObject) {
-                    buildObjectValues(key, (JSONObject) value, clazz, instance, builder);
+                    buildObjectValues(key, (JSONObject) value, clazz, instance, builder, isArray);
                 } else if (value instanceof JSONArray) {
                     buildArrayValue(key, (JSONArray) value, clazz, instance, builder);
                 } else {
@@ -336,7 +375,7 @@ public class Util {
                 }
             }
 
-            objectFieldsMap.put(key, objectFields);
+            objectFieldsMap.putIfAbsent(key, objectFields);
             Method[] methods = clazz.getDeclaredMethods();
             for (Method method : methods){
                 if (method.getName().equals("create" + capitalizeFirstLetter(key))) {
@@ -354,8 +393,12 @@ public class Util {
                         }
                     }
                     Object objectOffset = method.invoke(instance, args);
-                    Input input = new Input("object", (Integer)objectOffset);
-                    valueOffsetsMap.put(key, input);
+                    if (isArray) {
+                        res = (Integer)objectOffset;
+                    } else {
+                        Input input = new Input("object", (Integer)objectOffset);
+                        valueOffsetsMap.put(key, input);
+                    }
                 }
             }
 
@@ -363,6 +406,7 @@ public class Util {
             System.out.println("Exception in buildObjectValues reflection block.");
             e.printStackTrace();
         }
+        return res;
     }
 
     private static void buildArrayValue (String key, JSONArray jsonArray, Class<?> clazz, Object instance, FlatBufferBuilder builder) {
@@ -371,38 +415,50 @@ public class Util {
 
         for (int i = 0; i < len; i++) {
             Object item = jsonArray.get(i);
-            if (item instanceof JSONObject) {
-                //tbd
-                buildObjectValues(key, (JSONObject) item, clazz, instance, builder);
-            } else {
-                Method[] methods = clazz.getDeclaredMethods();
-                for (Method method : methods) {
-                    if (method.getName().equals(key)) {
-                        Class<?> returnType = method.getReturnType();
-                        switch (returnType.getName()) {
-                            case "java.lang.String":
-                                offsets[i] = builder.createString((String) jsonArray.get(i));
-                                break;
-                            default:
-                                break;
-                        }
+            Method[] methods = clazz.getDeclaredMethods();
+
+            for (Method method : methods) {
+                if (method.getName().equals(key)) {
+                    Class<?> returnType = method.getReturnType();
+                    switch (returnType.getName()) {
+                        case "java.lang.String":
+                            offsets[i] = builder.createString((String) item);
+                            break;
+                        case "int":
+                            offsets[i] = (Integer) item;
+                            break;
+                        case "short":
+                            offsets[i] = (Short) item;
+                            break;
+                        default:
+                            // object
+                            try {
+                                Class<?> objectClazz = Class.forName(returnType.getName());
+                                Object objectInstance = objectClazz.getDeclaredConstructor().newInstance();
+                                offsets[i] = buildObjectValues(key, (JSONObject) item, objectClazz, objectInstance, builder, true);
+                            } catch (Exception e) {
+                                System.out.println("Exception in buildArrayValue JSONObject reflection block.");
+                                e.printStackTrace();
+                            }
+                            break;
                     }
-                }
-
-                try {
-                    Method createMethod = clazz.getMethod("create" + capitalizeFirstLetter(key) + "Vector", FlatBufferBuilder.class, int[].class);
-                    Object offset = createMethod.invoke(instance, builder, offsets);
-
-                    Input input = new Input("array", (Integer)offset);
-                    valueOffsetsMap.put(key, input);
-
-                } catch (Exception e) {
-                    System.out.println("Exception in buildArrayValue reflection block.");
-                    e.printStackTrace();
                 }
 
             }
         }
+
+        try {
+            Method createMethod = clazz.getMethod("create" + capitalizeFirstLetter(key) + "Vector", FlatBufferBuilder.class, int[].class);
+            Object offset = createMethod.invoke(instance, builder, offsets);
+
+            Input input = new Input("array", (Integer)offset);
+            valueOffsetsMap.put(key, input);
+
+        } catch (Exception e) {
+            System.out.println("Exception in buildArrayValue reflection block.");
+            e.printStackTrace();
+        }
+
     }
 
     private static String capitalizeFirstLetter(String str) {
