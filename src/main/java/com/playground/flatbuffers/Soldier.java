@@ -19,6 +19,7 @@ import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+// test
 @SuppressWarnings("unused")
 public final class Soldier extends Table {
   public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }

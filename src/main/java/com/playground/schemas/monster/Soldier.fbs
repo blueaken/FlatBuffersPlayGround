@@ -1,4 +1,5 @@
 // Example IDL file for our soldier's schema.
+// test
 namespace com.playground.flatbuffers;
 table Soldier {
   name:string;

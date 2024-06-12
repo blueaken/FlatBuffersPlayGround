@@ -1,7 +1,6 @@
 package com.playground.util;
 
 import com.google.flatbuffers.FlatBufferBuilder;
-import com.playground.flatbuffers.*;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -12,8 +11,6 @@ import org.json.JSONArray;
 
 import java.nio.ByteBuffer;
 
-// @coderabbitai review
-// @coderabbitai review
 class Input {
     String type;
     Integer offset;
