@@ -2,6 +2,7 @@ package com.playground.util;
 
 import org.junit.Test;
 
+// test
 public class UtilTest {
     @Test
     public void testEncodeThenDecode()

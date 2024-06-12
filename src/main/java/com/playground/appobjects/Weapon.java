@@ -1,5 +1,6 @@
 package com.playground.appobjects;
 
+// test
 public class Weapon {
     String name;
     int damage;
